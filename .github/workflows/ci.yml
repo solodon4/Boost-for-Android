@@ -7,12 +7,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest,macos-latest]
+        flavor: [Debug] # Only use one of Debug/Release (capitalized) for now to save on minutes
         include:
           # includes a new variable of 'variation' for each host os
           - os: ubuntu-latest
             variation: linux
           - os: macos-latest
             variation: mac
+        exclude: # Disable combinations to save minutes
+          - os: macos-latest
+          #- os: ubuntu-latest
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
@@ -25,6 +29,21 @@ jobs:
     - name: Setup Environment Variables
       run: |
         set -x
+
+        # Bash trick of ${VARIABLE,} to lowercase 1st letter does not work on MacOS, hence case statement
+        case "${{ matrix.flavor }}" in
+          "Release")
+            export LOWERCASE_FLAVOR="release"
+            ;;
+          "Debug")
+            export LOWERCASE_FLAVOR="debug"
+            ;;
+          *)
+            echo "Invalid value for build flavor"
+            false
+            ;;
+        esac
+
         export NDK_ROOT=${ANDROID_SDK_ROOT}/ndk-bundle
         echo "::set-env name=NDK_ROOT::$NDK_ROOT"
         export NUM_CPU=`python -c 'import multiprocessing as mp; print(mp.cpu_count())'`
